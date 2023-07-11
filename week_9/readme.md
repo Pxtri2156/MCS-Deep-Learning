@@ -8,5 +8,7 @@ My customized:
     * Descripe: convet data to new format.  
   
 * Assignment 2: 
-  * File: /workspace/tripx/MCS/deep_learning/week_9/PyTorch-GAN/implementations/acgan/customized_acgan.py
-  * File: 
+  * File (Add new): /workspace/tripx/MCS/deep_learning/week_9/PyTorch-GAN/implementations/acgan/customized_acgan.py
+    *  Descripe : customized data.
+  * File(Add new): /workspace/tripx/MCS/deep_learning/week_9/PyTorch-GAN/implementations/ebgan/customized_ebgan.py
+    *  Descripe : customized data.

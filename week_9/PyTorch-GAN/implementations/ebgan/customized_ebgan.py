@@ -2,11 +2,13 @@ import argparse
 import os
 import numpy as np
 import math
+import pandas as pd
 
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
+from torchvision.io import read_image
 
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets
 from torch.autograd import Variable
 
@@ -24,8 +26,8 @@ parser.add_argument("--b1", type=float, default=0.5, help="adam: decay of first 
 parser.add_argument("--b2", type=float, default=0.999, help="adam: decay of first order momentum of gradient")
 parser.add_argument("--n_cpu", type=int, default=8, help="number of cpu threads to use during batch generation")
 parser.add_argument("--latent_dim", type=int, default=62, help="dimensionality of the latent space")
-parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
-parser.add_argument("--channels", type=int, default=1, help="number of image channels")
+parser.add_argument("--img_size", type=int, default=28, help="size of each image dimension")
+parser.add_argument("--channels", type=int, default=3, help="number of image channels")
 parser.add_argument("--sample_interval", type=int, default=400, help="number of image channels")
 opt = parser.parse_args()
 print(opt)
@@ -118,14 +120,62 @@ generator.apply(weights_init_normal)
 discriminator.apply(weights_init_normal)
 
 # Configure data loader
-os.makedirs("../../data/mnist", exist_ok=True)
-dataloader = torch.utils.data.DataLoader(
-    datasets.MNIST(
-        "../../data/mnist",
-        train=True,
-        download=True,
+# os.makedirs("../../data/mnist", exist_ok=True)
+# dataloader = torch.utils.data.DataLoader(
+#     datasets.MNIST(
+#         "../../data/mnist",
+#         train=True,
+#         download=True,
+#         transform=transforms.Compose(
+#             [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
+#         ),
+#     ),
+#     batch_size=opt.batch_size,
+#     shuffle=True,
+# )
+
+class FaceData(Dataset):
+    def __init__(self, annotations_file, transform=None, target_transform=None):
+        # self.img_dir = img_dir
+        self.data = pd.read_csv(annotations_file)
+        self.transform = transform
+        self.target_transform = target_transform
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        img_path = self.data.iloc[idx, 0]     
+        # print("img_path: ", img_path)
+        image = read_image(img_path)
+        label = self.data.iloc[idx, 1]
+        if self.transform:
+            # print(type(image))
+            image = self.transform(image)
+        if self.target_transform:
+            label = self.target_transform(label)
+        return image, label
+   
+train_path="/workspace/tripx/MCS/deep_learning/week_9/data/train/train.csv"
+validation_path="/workspace/tripx/MCS/deep_learning/week_9/data/validation/validation.csv"
+# train data
+train_dataloader = torch.utils.data.DataLoader(
+    FaceData(
+        annotations_file=train_path,
         transform=transforms.Compose(
-            [transforms.Resize(opt.img_size), transforms.ToTensor(), transforms.Normalize([0.5], [0.5])]
+            [transforms.Resize((opt.img_size, opt.img_size))]
+        ),
+    ),
+    batch_size=opt.batch_size,
+    shuffle=True,
+)
+
+# validation data 
+validation_dataloader = torch.utils.data.DataLoader(
+    FaceData(
+        annotations_file=validation_path,
+        transform=transforms.Compose(
+            [transforms.Resize((opt.img_size, opt.img_size))]
         ),
     ),
     batch_size=opt.batch_size,
@@ -157,7 +207,7 @@ lambda_pt = 0.1
 margin = max(1, opt.batch_size / 64.0)
 
 for epoch in range(opt.n_epochs):
-    for i, (imgs, _) in enumerate(dataloader):
+    for i, (imgs, _) in enumerate(train_dataloader):
 
         # Configure input
         real_imgs = Variable(imgs.type(Tensor))
@@ -207,9 +257,9 @@ for epoch in range(opt.n_epochs):
 
         print(
             "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-            % (epoch, opt.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
+            % (epoch, opt.n_epochs, i, len(train_dataloader), d_loss.item(), g_loss.item())
         )
 
-        batches_done = epoch * len(dataloader) + i
+        batches_done = epoch * len(train_dataloader) + i
         if batches_done % opt.sample_interval == 0:
             save_image(gen_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
