@@ -1,0 +1,11 @@
+/workspace/tripx/MCS/deep_learning/final_qa/data/
+/workspace/tripx/MCS/deep_learning/assignments/week_9/data
+/workspace/tripx/MCS/deep_learning/squad_data_split
+/workspace/tripx/MCS/deep_learning/tensor_qa_data
+/workspace/tripx/MCS/deep_learning/final_qa/model
+final_qa/model/
+/workspace/tripx/MCS/deep_learning/assignments/week_9/PyTorch-GAN/data
+*.zip
+*.jpg
+*.png
+*.jpeg
